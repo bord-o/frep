@@ -1,0 +1,8 @@
+lib: [
+  "_build/install/default/lib/frep/META"
+  "_build/install/default/lib/frep/dune-package"
+  "_build/install/default/lib/frep/opam"
+]
+bin: [
+  "_build/install/default/bin/frep"
+]
