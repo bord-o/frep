@@ -1,21 +1,24 @@
 type point = { x : float; y : float; z : float }
 type frep = point -> float
 type primitive = ..
+type primitive += Sphere of frep
 
 type op = Metamorphize of obj * obj * float
 and obj = Prim of frep | Construct of op
 
 let pow2 = (Fun.flip Float.pow) 2.0
 
-type primitive += Sphere of frep
+let box v w l h =
+ fun v' ->
+  -.min
+      (min
+         ((w /. 2.0) -. abs_float (v'.x -. v.x))
+         ((h /. 2.0) -. abs_float (v'.y -. v.y)))
+      ((l /. 2.0) -. abs_float (v'.z -. v.z))
 
 let sphere v radius =
  fun v' ->
-  Float.neg
-    (pow2 (v'.x -. v.x)
-    +. pow2 (v'.y -. v.y)
-    +. pow2 (v'.z -. v.z)
-    -. pow2 radius)
+  pow2 radius -. pow2 (v'.x -. v.x) -. pow2 (v'.y -. v.y) -. pow2 (v'.z -. v.z)
 
 let show (p : primitive) = match p with Sphere _ -> "Sphere" | _ -> "Unknown"
 let simple = Prim (sphere { x = 0.; y = 0.; z = 0. } 3.0)
@@ -51,8 +54,9 @@ let write_points (ps : point array) filename =
   |> Array.iter @@ fun point ->
      output_string oc @@ Printf.sprintf "%f %f %f\n" point.x point.y point.z
 
-let get_surface ?(epsilon = 0.001) (shape_at : frep) (box : point array) =
+let get_prim_surface ?(epsilon = 0.001) (shape_at : frep) (box : point array) =
   box |> Array.to_list
   |> ( List.filter @@ fun point ->
-       Float.neg epsilon < shape_at point && shape_at point < epsilon )
+       let d = abs_float @@ shape_at point in
+       d < epsilon )
   |> Array.of_list
