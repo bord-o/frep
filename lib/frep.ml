@@ -3,7 +3,13 @@ type frep = point -> float
 type primitive = ..
 type primitive += Sphere of frep
 
-type op = Metamorphize of obj * obj * float
+type op =
+  | Neg of obj
+  | Metamorphize of obj * obj * float
+  | Union of obj * obj
+  | Intersection of obj * obj
+  | Subtraction of obj * obj
+
 and obj = Prim of frep | Construct of op
 
 let pow2 = (Fun.flip Float.pow) 2.0
@@ -23,12 +29,21 @@ let sphere v radius =
 let show (p : primitive) = match p with Sphere _ -> "Sphere" | _ -> "Unknown"
 let simple = Prim (sphere { x = 0.; y = 0.; z = 0. } 3.0)
 
-let morph =
-  Construct
-    (Metamorphize
-       ( Prim (sphere { x = 0.; y = 0.; z = 0. } 3.0),
-         Prim (sphere { x = 10.; y = 0.; z = 0. } 1.0),
-         0.5 ))
+let rec eval p = function
+  | Prim f -> f p
+  | Construct (Neg f) -> -.eval p f
+  | Construct (Union (left, right)) ->
+      let f_1 = eval p left in
+      let f_2 = eval p right in
+      f_1 +. f_2 +. Float.sqrt (pow2 f_1 +. pow2 f_2)
+  | Construct (Intersection (left, right)) ->
+      let f_1 = eval p left in
+      let f_2 = eval p right in
+      f_1 +. f_2 -. Float.sqrt (pow2 f_1 +. pow2 f_2)
+  | Construct (Subtraction (left, right)) ->
+      eval p (Construct (Intersection (left, Construct (Neg right))))
+  | Construct (Metamorphize (_from, _to', _progress)) ->
+      failwith "Unimplemented"
 
 (* this is centered around the origin for simplicity *)
 (* granularity is points per unit length *)
@@ -58,5 +73,12 @@ let get_prim_surface ?(epsilon = 0.001) (shape_at : frep) (box : point array) =
   box |> Array.to_list
   |> ( List.filter @@ fun point ->
        let d = abs_float @@ shape_at point in
+       d < epsilon )
+  |> Array.of_list
+
+let get_surface ?(epsilon = 0.001) (shape_at : obj) (box : point array) =
+  box |> Array.to_list
+  |> ( List.filter @@ fun point ->
+       let d = abs_float @@ eval point shape_at in
        d < epsilon )
   |> Array.of_list
