@@ -5,7 +5,7 @@ type primitive += Sphere of frep
 
 type op =
   | Neg of obj
-  | Metamorphize of obj * obj * float
+  | Metamorphosis of obj * obj * float
   | Union of obj * obj
   | Intersection of obj * obj
   | Subtraction of obj * obj
@@ -42,8 +42,10 @@ let rec eval p = function
       f_1 +. f_2 -. Float.sqrt (pow2 f_1 +. pow2 f_2)
   | Construct (Subtraction (left, right)) ->
       eval p (Construct (Intersection (left, Construct (Neg right))))
-  | Construct (Metamorphize (_from, _to', _progress)) ->
-      failwith "Unimplemented"
+  | Construct (Metamorphosis (from, to', progress)) ->
+      let f_1 = eval p from in
+      let f_2 = eval p to' in
+      (progress *. f_1) +. ((1. -. progress) *. f_2)
 
 (* this is centered around the origin for simplicity *)
 (* granularity is points per unit length *)
